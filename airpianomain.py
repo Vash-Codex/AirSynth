@@ -3,6 +3,7 @@ import pygame
 import time
 import random
 import re
+from collections import deque
 
 # Initialize audio & UI
 pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
@@ -42,11 +43,19 @@ for note, filename in note_file_map.items():
 white_keys = ["C", "D", "E", "F", "G", "A", "B"]
 black_keys = ["C#", "D#", None, "F#", "G#", "A#", None]
 
-note_order = list(note_sounds.keys())
+# Notes layout
+white_keys = ["C", "D", "E", "F", "G", "A", "B"]
+black_keys = ["C#", "D#", None, "F#", "G#", "A#", None]
+
+note_queue = deque()  # Queue for notes to be played
 current_note = ""
 current_distance = 0
-note_start_time = 0
+currently_playing_note = ""
+note_play_time = 0
 note_duration = 0.3  # seconds
+note_start_time = 0
+last_detected_note = ""
+last_note_time = 0
 
 button_rect = pygame.Rect(WIDTH - 120, 20, 100, 40)
 
@@ -147,14 +156,24 @@ try:
             distance, note = parse_serial_data(line)
             if distance is not None:
                 current_distance = distance
-                if note and note in note_sounds:
-                    current_note = note
-                    note_start_time = time.time()
-                    note_sounds[note].play()
-                    flash_color = random_color()
-                    flash_intensity = 1.0
+                
+                # Queue note if it's different from the last detected note (debounce)
+                if note and note in note_sounds and note != last_detected_note:
+                    note_queue.append(note)
+                    last_detected_note = note
                 elif not note:
-                    current_note = ""
+                    last_detected_note = ""
+        
+        # Check if current note finished playing and play next one
+        time_elapsed = time.time() - note_play_time
+        if time_elapsed > note_duration and note_queue:
+            # Previous note finished, play next one
+            next_note = note_queue.popleft()
+            currently_playing_note = next_note
+            note_play_time = time.time()
+            note_sounds[next_note].play()
+            flash_color = random_color()
+            flash_intensity = 1.0
 
         # Apply flash effect
         if flash_intensity > 0:
@@ -181,8 +200,8 @@ try:
         draw_distance_bar(window, current_distance, bar_x, bar_y, bar_width, bar_height)
 
         # Draw note label
-        if current_note:
-            note_surface = font.render(f"🎵 {current_note}", True, (255, 255, 255))
+        if currently_playing_note:
+            note_surface = font.render(f"🎵 {currently_playing_note}", True, (255, 255, 255))
             note_rect = note_surface.get_rect(center=(WIDTH // 2, 120))
             window.blit(note_surface, note_rect)
 
@@ -190,7 +209,7 @@ try:
         key_width = WIDTH // 7
         white_rects = []
         for i, note in enumerate(white_keys):
-            is_pressed = (current_note == note and time.time() - note_start_time < note_duration)
+            is_pressed = (currently_playing_note == note and time.time() - note_play_time < note_duration)
             y_offset = 5 if is_pressed else 0
             rect = pygame.Rect(i * key_width + 5, HEIGHT - 140 + y_offset, key_width - 10, 130 - y_offset)
             color = (255, 255, 255) if not is_pressed else (180, 200, 255)
@@ -202,7 +221,7 @@ try:
         black_height = 90
         for i, note in enumerate(black_keys):
             if note:
-                is_pressed = (current_note == note and time.time() - note_start_time < note_duration)
+                is_pressed = (currently_playing_note == note and time.time() - note_play_time < note_duration)
                 y_offset = 4 if is_pressed else 0
                 x = i * key_width + key_width - black_width // 2
                 rect = pygame.Rect(x, HEIGHT - 140 + y_offset, black_width, black_height - y_offset)
