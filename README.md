@@ -27,6 +27,13 @@ GND        →    GND
 Trig       →    Pin 10
 Echo       →    Pin 9
 ```
+```
+i2c 16x2 LCD  → Arduino Uno
+VCC        →    5V
+GND        →    GND
+SDA        →    A4
+SCL        →    A5
+```
 
 ## 💻 Software Requirements
 
@@ -36,7 +43,10 @@ Echo       →    Pin 9
   ```bash
   pip install pygame pyserial
   ```
-
+  **Required Arduino Libraries:**
+  ```bash
+   I2C_LiquidCrystal
+  ```
 ## 🎼 Audio Files
 
 Download piano WAV files and organize them as:
