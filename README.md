@@ -18,6 +18,7 @@ A contactless musical instrument that lets you play piano by moving your hand in
 - **Jumper Wires**
 - **Breadboard** (optional)
 - **USB Cable** for Arduino connection
+- **I2C 16x2 LCD** (optional)
 
 ### Wiring Diagram
 ```
